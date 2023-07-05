@@ -21,7 +21,7 @@ Please refer to [Pedestron repository](https://github.com/hasanirtiza/Pedestron)
 
 * The following command can be used for multi GPU training.
   ```shell 
-  python tools/demo.py config checkpoint input_dir output_dir
+  python3 -m torch.distributed.launch --nproc_per_node= gpu_count --master_port=11001 main.py --output_dir path/to/output -c path/to/config --coco_path /path/to/dataset/ --options dn_scalar=100 embed_init_tgt=TRUE dn_label_coef=1.0 dn_bbox_coef=1.0 use_ema=False dn_box_noise_scale=1.0 backbone_dir=/path/to/backbone/ --pretrain_model_path /path/to/pretrain_model --initilize_cross_attention --finetune_ignore label_enc.weight class_embed 
   ```
 
 # References
