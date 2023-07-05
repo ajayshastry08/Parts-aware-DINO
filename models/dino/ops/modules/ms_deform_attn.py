@@ -21,83 +21,6 @@ import time
 
 from ..functions import MSDeformAttnFunction
 
-def box_cxcywh_to_4_point_split_v3(x,l=0.2,v=0.6):
-    #note that x is in the format cxcywh
-    mask_new = torch.tensor([[1,1,1,1],[1,1,1,1],[1,1,1,1],[1,1,1,1]]).to("cuda")
-    x_new = x[:, :, :,None] * mask_new[None, :]
-    x_xyxy = x_new.clone().detach()
-    x_xywh = x_new.clone().detach()
-    x_final = x_new.clone().detach()
-
-    x_xyxy[:,:,:,:,0] = x_new[:,:,:,:,0] - 0.5 * x_new[:,:,:,:,2]
-    x_xyxy[:,:,:,:,1] = x_new[:,:,:,:,1] - 0.5 * x_new[:,:,:,:,3]
-    x_xyxy[:,:,:,:,2] = x_new[:,:,:,:,0] + 0.5 * x_new[:,:,:,:,2]
-    x_xyxy[:,:,:,:,3] = x_new[:,:,:,:,1] + 0.5 * x_new[:,:,:,:,3]
-    
-    x_xywh[:,:,:,:,0] = x_new[:,:,:,:,0] - 0.5 * x_new[:,:,:,:,2]
-    x_xywh[:,:,:,:,1] = x_new[:,:,:,:,1] - 0.5 * x_new[:,:,:,:,3]
-    
-    #modifying first row of the tensor
-    x_final[:,:,:,0,0] = x_new[:,:,:,0,0]
-    x_final[:,:,:,0,1] = x_new[:,:,:,0,1]
-    x_final[:,:,:,0,2] = x_new[:,:,:,0,2]
-    x_final[:,:,:,0,3] = x_new[:,:,:,0,3]
-
-    x_final[:,:,:,1,0] = x_new[:,:,:,1,0] 
-    x_final[:,:,:,1,1] = x_new[:,:,:,1,1] - x_new[:,:,:,1,3]*l*v
-    x_final[:,:,:,1,2] = x_new[:,:,:,1,2]
-    x_final[:,:,:,1,3] = x_new[:,:,:,1,3]
-
-    x_final[:,:,:,2,0] = x_new[:,:,:,2,0] - l*(x_new[:,:,:,2,0]-x_xyxy[:,:,:,2,0])
-    x_final[:,:,:,2,1] = x_new[:,:,:,2,1] + l*(x_xyxy[:,:,:,2,3]-x_new[:,:,:,2,1])
-    x_final[:,:,:,2,2] = x_new[:,:,:,2,2]
-    x_final[:,:,:,2,3] = x_new[:,:,:,2,3]
-
-    x_final[:,:,:,3,0] = x_new[:,:,:,3,0] + l*(x_xyxy[:,:,:,3,2]-x_new[:,:,:,3,0])
-    x_final[:,:,:,3,1] = x_new[:,:,:,3,1] + l*(x_xyxy[:,:,:,3,3]-x_new[:,:,:,3,1])
-    x_final[:,:,:,3,2] = x_new[:,:,:,3,2]
-    x_final[:,:,:,3,3] = x_new[:,:,:,3,3]
-    
-    return x_final #torch.stack(b, dim=-1)
-
-def box_cxcywh_to_4_point_split_v5(x):
-    #note that x is in the format cxcywh
-    mask_new = torch.tensor([[1,1,1,1],[1,1,1,1],[1,1,1,1],[1,1,1,1]]).to("cuda")
-    x_new = x[:, :, :,None] * mask_new[None, :]
-    x_xyxy = x_new.clone().detach()
-    x_xywh = x_new.clone().detach()
-    x_final = x_new.clone().detach()
-
-    x_xyxy[:,:,:,:,0] = x_new[:,:,:,:,0] - 0.5 * x_new[:,:,:,:,2]
-    x_xyxy[:,:,:,:,1] = x_new[:,:,:,:,1] - 0.5 * x_new[:,:,:,:,3]
-    x_xyxy[:,:,:,:,2] = x_new[:,:,:,:,0] + 0.5 * x_new[:,:,:,:,2]
-    x_xyxy[:,:,:,:,3] = x_new[:,:,:,:,1] + 0.5 * x_new[:,:,:,:,3]
-    
-    x_xywh[:,:,:,:,0] = x_new[:,:,:,:,0] - 0.5 * x_new[:,:,:,:,2]
-    x_xywh[:,:,:,:,1] = x_new[:,:,:,:,1] - 0.5 * x_new[:,:,:,:,3]
-    
-    #modifying first row of the tensor
-    x_final[:,:,:,0,0] = x_xywh[:,:,:,0,0] + x_xywh[:,:,:,0,2]*0.25
-    x_final[:,:,:,0,1] = x_xywh[:,:,:,0,1] + x_xywh[:,:,:,0,3]*0.25
-    x_final[:,:,:,0,2] = 0.5*x_xywh[:,:,:,0,2]
-    x_final[:,:,:,0,3] = 0.5*x_xywh[:,:,:,0,3]
-
-    x_final[:,:,:,1,0] = x_xywh[:,:,:,1,0] + x_xywh[:,:,:,1,2]*0.75 
-    x_final[:,:,:,1,1] = x_xywh[:,:,:,1,1] + x_xywh[:,:,:,1,3]*0.25
-    x_final[:,:,:,1,2] = 0.5*x_xywh[:,:,:,1,2]
-    x_final[:,:,:,1,3] = 0.5*x_xywh[:,:,:,1,3]
-
-    x_final[:,:,:,2,0] = x_xywh[:,:,:,2,0] + x_xywh[:,:,:,2,2]*0.75 
-    x_final[:,:,:,2,1] = x_xywh[:,:,:,2,1] + x_xywh[:,:,:,2,3]*0.75
-    x_final[:,:,:,2,2] = 0.5*x_xywh[:,:,:,2,2]
-    x_final[:,:,:,2,3] = 0.5*x_xywh[:,:,:,2,3]
-
-    x_final[:,:,:,3,0] = x_xywh[:,:,:,3,0] + x_xywh[:,:,:,3,2]*0.25 
-    x_final[:,:,:,3,1] = x_xywh[:,:,:,3,1] + x_xywh[:,:,:,3,3]*0.75 
-    x_final[:,:,:,3,2] = 0.5*x_xywh[:,:,:,3,2]
-    x_final[:,:,:,3,3] = 0.5*x_xywh[:,:,:,3,3]
-    
-    return x_final #torch.stack(b, dim=-1)
 
 def box_cxcywh_to_5_point_split_v4(x):
     #note that x is in the format cxcywh
@@ -142,187 +65,6 @@ def box_cxcywh_to_5_point_split_v4(x):
     x_final[:,:,:,4,3] = x_xywh[:,:,:,4,3]*0.23
         
     return x_final 
-
-def box_cxcywh_to_4_point_split_8_v3(x,l=0.2,v=0.6):
-    #note that x is in the format cxcywh
-    #print(x.shape)
-    mask_new = torch.tensor([[1,1,1,1],[1,1,1,1],[1,1,1,1],[1,1,1,1],[1,1,1,1],[1,1,1,1],[1,1,1,1],[1,1,1,1]]).to("cuda")
-    x_new = x[:, :, :,None] * mask_new[None, :]
-    #print(x_new.shape)
-    x_xyxy = x_new.clone().detach()
-    x_xywh = x_new.clone().detach()
-    x_final = x_new.clone().detach()
-
-    x_xyxy[:,:,:,:,0] = x_new[:,:,:,:,0] - 0.5 * x_new[:,:,:,:,2]
-    x_xyxy[:,:,:,:,1] = x_new[:,:,:,:,1] - 0.5 * x_new[:,:,:,:,3]
-    x_xyxy[:,:,:,:,2] = x_new[:,:,:,:,0] + 0.5 * x_new[:,:,:,:,2]
-    x_xyxy[:,:,:,:,3] = x_new[:,:,:,:,1] + 0.5 * x_new[:,:,:,:,3]
-    
-    x_xywh[:,:,:,:,0] = x_new[:,:,:,:,0] - 0.5 * x_new[:,:,:,:,2]
-    x_xywh[:,:,:,:,1] = x_new[:,:,:,:,1] - 0.5 * x_new[:,:,:,:,3]
-    
-    #modifying first row of the tensor
-    x_final[:,:,:,0,0] = x_new[:,:,:,0,0]
-    x_final[:,:,:,0,1] = x_new[:,:,:,0,1]
-    x_final[:,:,:,0,2] = x_new[:,:,:,0,2]
-    x_final[:,:,:,0,3] = x_new[:,:,:,0,3]
-
-    x_final[:,:,:,1,0] = x_new[:,:,:,1,0] 
-    x_final[:,:,:,1,1] = x_new[:,:,:,1,1] - x_new[:,:,:,1,3]*l*v
-    x_final[:,:,:,1,2] = x_new[:,:,:,1,2]
-    x_final[:,:,:,1,3] = x_new[:,:,:,1,3]
-
-    x_final[:,:,:,2,0] = x_new[:,:,:,2,0] - l*(x_new[:,:,:,2,0]-x_xyxy[:,:,:,2,0])
-    x_final[:,:,:,2,1] = x_new[:,:,:,2,1] + l*(x_xyxy[:,:,:,2,3]-x_new[:,:,:,2,1])
-    x_final[:,:,:,2,2] = x_new[:,:,:,2,2]
-    x_final[:,:,:,2,3] = x_new[:,:,:,2,3]
-
-    x_final[:,:,:,3,0] = x_new[:,:,:,3,0] + l*(x_xyxy[:,:,:,3,2]-x_new[:,:,:,3,0])
-    x_final[:,:,:,3,1] = x_new[:,:,:,3,1] + l*(x_xyxy[:,:,:,3,3]-x_new[:,:,:,3,1])
-    x_final[:,:,:,3,2] = x_new[:,:,:,3,2]
-    x_final[:,:,:,3,3] = x_new[:,:,:,3,3]
-
-    x_final[:,:,:,4,0] = x_new[:,:,:,4,0]
-    x_final[:,:,:,4,1] = x_new[:,:,:,4,1]
-    x_final[:,:,:,4,2] = x_new[:,:,:,4,2]
-    x_final[:,:,:,4,3] = x_new[:,:,:,4,3]
-
-    x_final[:,:,:,5,0] = x_new[:,:,:,5,0] 
-    x_final[:,:,:,5,1] = x_new[:,:,:,5,1] - x_new[:,:,:,5,3]*l*v
-    x_final[:,:,:,5,2] = x_new[:,:,:,5,2]
-    x_final[:,:,:,5,3] = x_new[:,:,:,5,3]
-
-    x_final[:,:,:,6,0] = x_new[:,:,:,6,0] - l*(x_new[:,:,:,6,0]-x_xyxy[:,:,:,6,0])
-    x_final[:,:,:,6,1] = x_new[:,:,:,6,1] + l*(x_xyxy[:,:,:,6,3]-x_new[:,:,:,6,1])
-    x_final[:,:,:,6,2] = x_new[:,:,:,6,2]
-    x_final[:,:,:,6,3] = x_new[:,:,:,6,3]
-
-    x_final[:,:,:,7,0] = x_new[:,:,:,7,0] + l*(x_xyxy[:,:,:,7,2]-x_new[:,:,:,7,0])
-    x_final[:,:,:,7,1] = x_new[:,:,:,7,1] + l*(x_xyxy[:,:,:,7,3]-x_new[:,:,:,7,1])
-    x_final[:,:,:,7,2] = x_new[:,:,:,7,2]
-    x_final[:,:,:,7,3] = x_new[:,:,:,7,3]
-
-    return x_final #torch.stack(b, dim=-1)
-
-def box_cxcywh_to_4_point_split_12_v3(x,l=0.2,v=0.6):
-    #note that x is in the format cxcywh
-    #print(x.shape)
-    mask_new = torch.tensor([[1,1,1,1],[1,1,1,1],[1,1,1,1],[1,1,1,1],[1,1,1,1],[1,1,1,1],[1,1,1,1],[1,1,1,1],[1,1,1,1],[1,1,1,1],[1,1,1,1],[1,1,1,1]]).to("cuda")
-    x_new = x[:, :, :,None] * mask_new[None, :]
-    #print(x_new.shape)
-    x_xyxy = x_new.clone().detach()
-    x_xywh = x_new.clone().detach()
-    x_final = x_new.clone().detach()
-
-    x_xyxy[:,:,:,:,0] = x_new[:,:,:,:,0] - 0.5 * x_new[:,:,:,:,2]
-    x_xyxy[:,:,:,:,1] = x_new[:,:,:,:,1] - 0.5 * x_new[:,:,:,:,3]
-    x_xyxy[:,:,:,:,2] = x_new[:,:,:,:,0] + 0.5 * x_new[:,:,:,:,2]
-    x_xyxy[:,:,:,:,3] = x_new[:,:,:,:,1] + 0.5 * x_new[:,:,:,:,3]
-    
-    x_xywh[:,:,:,:,0] = x_new[:,:,:,:,0] - 0.5 * x_new[:,:,:,:,2]
-    x_xywh[:,:,:,:,1] = x_new[:,:,:,:,1] - 0.5 * x_new[:,:,:,:,3]
-    
-    #modifying first row of the tensor
-    x_final[:,:,:,0,0] = x_new[:,:,:,0,0]
-    x_final[:,:,:,0,1] = x_new[:,:,:,0,1]
-    x_final[:,:,:,0,2] = x_new[:,:,:,0,2]
-    x_final[:,:,:,0,3] = x_new[:,:,:,0,3]
-
-    x_final[:,:,:,1,0] = x_new[:,:,:,1,0] 
-    x_final[:,:,:,1,1] = x_new[:,:,:,1,1] - x_new[:,:,:,1,3]*l*v
-    x_final[:,:,:,1,2] = x_new[:,:,:,1,2]
-    x_final[:,:,:,1,3] = x_new[:,:,:,1,3]
-
-    x_final[:,:,:,2,0] = x_new[:,:,:,2,0] - l*(x_new[:,:,:,2,0]-x_xyxy[:,:,:,2,0])
-    x_final[:,:,:,2,1] = x_new[:,:,:,2,1] + l*(x_xyxy[:,:,:,2,3]-x_new[:,:,:,2,1])
-    x_final[:,:,:,2,2] = x_new[:,:,:,2,2]
-    x_final[:,:,:,2,3] = x_new[:,:,:,2,3]
-
-    x_final[:,:,:,3,0] = x_new[:,:,:,3,0] + l*(x_xyxy[:,:,:,3,2]-x_new[:,:,:,3,0])
-    x_final[:,:,:,3,1] = x_new[:,:,:,3,1] + l*(x_xyxy[:,:,:,3,3]-x_new[:,:,:,3,1])
-    x_final[:,:,:,3,2] = x_new[:,:,:,3,2]
-    x_final[:,:,:,3,3] = x_new[:,:,:,3,3]
-
-    x_final[:,:,:,4,0] = x_new[:,:,:,4,0]
-    x_final[:,:,:,4,1] = x_new[:,:,:,4,1]
-    x_final[:,:,:,4,2] = x_new[:,:,:,4,2]
-    x_final[:,:,:,4,3] = x_new[:,:,:,4,3]
-
-    x_final[:,:,:,5,0] = x_new[:,:,:,5,0] 
-    x_final[:,:,:,5,1] = x_new[:,:,:,5,1] - x_new[:,:,:,5,3]*l*v
-    x_final[:,:,:,5,2] = x_new[:,:,:,5,2]
-    x_final[:,:,:,5,3] = x_new[:,:,:,5,3]
-
-    x_final[:,:,:,6,0] = x_new[:,:,:,6,0] - l*(x_new[:,:,:,6,0]-x_xyxy[:,:,:,6,0])
-    x_final[:,:,:,6,1] = x_new[:,:,:,6,1] + l*(x_xyxy[:,:,:,6,3]-x_new[:,:,:,6,1])
-    x_final[:,:,:,6,2] = x_new[:,:,:,6,2]
-    x_final[:,:,:,6,3] = x_new[:,:,:,6,3]
-
-    x_final[:,:,:,7,0] = x_new[:,:,:,7,0] + l*(x_xyxy[:,:,:,7,2]-x_new[:,:,:,7,0])
-    x_final[:,:,:,7,1] = x_new[:,:,:,7,1] + l*(x_xyxy[:,:,:,7,3]-x_new[:,:,:,7,1])
-    x_final[:,:,:,7,2] = x_new[:,:,:,7,2]
-    x_final[:,:,:,7,3] = x_new[:,:,:,7,3]
-
-    x_final[:,:,:,8,0] = x_new[:,:,:,8,0]
-    x_final[:,:,:,8,1] = x_new[:,:,:,8,1]
-    x_final[:,:,:,8,2] = x_new[:,:,:,8,2]
-    x_final[:,:,:,8,3] = x_new[:,:,:,8,3]
-
-    x_final[:,:,:,9,0] = x_new[:,:,:,9,0] 
-    x_final[:,:,:,9,1] = x_new[:,:,:,9,1] - x_new[:,:,:,9,3]*l*v
-    x_final[:,:,:,9,2] = x_new[:,:,:,9,2]
-    x_final[:,:,:,9,3] = x_new[:,:,:,9,3]
-
-    x_final[:,:,:,10,0] = x_new[:,:,:,10,0] - l*(x_new[:,:,:,10,0]-x_xyxy[:,:,:,10,0])
-    x_final[:,:,:,10,1] = x_new[:,:,:,10,1] + l*(x_xyxy[:,:,:,10,3]-x_new[:,:,:,10,1])
-    x_final[:,:,:,10,2] = x_new[:,:,:,10,2]
-    x_final[:,:,:,10,3] = x_new[:,:,:,10,3]
-
-    x_final[:,:,:,11,0] = x_new[:,:,:,11,0] + l*(x_xyxy[:,:,:,11,2]-x_new[:,:,:,11,0])
-    x_final[:,:,:,11,1] = x_new[:,:,:,11,1] + l*(x_xyxy[:,:,:,11,3]-x_new[:,:,:,11,1])
-    x_final[:,:,:,11,2] = x_new[:,:,:,11,2]
-    x_final[:,:,:,11,3] = x_new[:,:,:,11,3]
-
-    return x_final #torch.stack(b, dim=-1)
-
-def modify_sampling_points(sampling_location,attention_weight,scales,kernal_size=3,threshold=0.1):
-
-    sampling_location_required_shape = list(sampling_location.shape)
-    sampling_location_required_shape[4] *=  (kernal_size**2)
-    sampling_locations_final = torch.full(sampling_location_required_shape,999.99).to("cuda")
-
-    attention_weight_required_shape = list(attention_weight.shape)
-    attention_weight_required_shape[4] *=  (kernal_size**2)
-    attention_weight_final = torch.full(attention_weight_required_shape,0.0).to("cuda")
-    attention_weight_mask = torch.full(attention_weight_required_shape,0.0).to("cuda")
-    attention_weight_mask_center = torch.full(attention_weight_required_shape,0.0).to("cuda")
-
-    n_points = 4
-    n_levels = 4
-
-    conv_locations = torch.tensor([[-1,-1],[0,-1],[1,-1],[-1,0],[0,0],[1,0],[-1,1],[0,1],[1,1]]).to("cuda")
-    gaussian_weight = torch.tensor([1,2,1,2,4,2,1,2,1])/16.0
-    gaussian_weight = gaussian_weight.to("cuda")
-    
-    #bring in the resolution info here
-    for l in range(n_levels):
-        for p in range(n_points):
-            for k_ind,k in enumerate(conv_locations):
-                sampling_locations_final[:,:,:,l,(p*(kernal_size**2))+k_ind,0] = sampling_location[:,:,:,l,p,0]+(k[0]*(1/scales[l][1]))
-                sampling_locations_final[:,:,:,l,(p*(kernal_size**2))+k_ind,1] = sampling_location[:,:,:,l,p,1]+(k[1]*(1/scales[l][0]))
-
-    for l in range(n_levels):
-        for p in range(n_points):
-            for k_ind,k in enumerate(gaussian_weight):
-                attention_weight_final[:,:,:,l,(p*(kernal_size**2))+k_ind] = attention_weight[:,:,:,l,p]*k
-                attention_weight_mask[:,:,:,l,(p*(kernal_size**2))+k_ind] = attention_weight[:,:,:,l,p]
-                if k_ind == 4:
-                    attention_weight_mask_center[:,:,:,l,(p*(kernal_size**2))+k_ind] = attention_weight[:,:,:,l,p]
-
-    new_attention_weight_mask = torch.where(attention_weight_mask > threshold,1,0)
-    new_attention_weight_final = torch.where(new_attention_weight_mask == 0,attention_weight_mask_center,attention_weight_final)
-    
-    return sampling_locations_final,new_attention_weight_final
 
 def _is_power_of_2(n):
     if (not isinstance(n, int)) or (n < 0):
@@ -404,7 +146,7 @@ class MSDeformAttn(nn.Module):
         #attention_weights = self.attention_weights(query).view(N, Len_q, self.n_heads, self.n_levels * self.n_points)
         #attention_weights = F.softmax(attention_weights, -1).view(N, Len_q, self.n_heads, self.n_levels, self.n_points)
         
-        #ajay version of code
+        #modified version
         if reference_points.shape[-1] == 2:
             attention_weights = self.attention_weights(query).view(N, Len_q, self.n_heads, self.n_levels * self.n_points)
             attention_weights = F.softmax(attention_weights, -1).view(N, Len_q, self.n_heads, self.n_levels, self.n_points)
@@ -425,7 +167,6 @@ class MSDeformAttn(nn.Module):
                                  + sampling_offsets / offset_normalizer[None, None, None, :, None, :]
         elif reference_points.shape[-1] == 4:
 
-            #ajay's output
 
             #t1 = time.time()
             new_reference_points = box_cxcywh_to_5_point_split_v4(reference_points)
@@ -436,16 +177,10 @@ class MSDeformAttn(nn.Module):
 
             #sampling_locations = reference_points[:, :, None, :, None, :2] + sampling_offsets / self.n_points * reference_points[:, :, None, :, None, 2:] * 0.5
 
-            #torch.save(new_reference_points, '/home/ajay_sh/scratch/pedestrian_detection/DETR-Based/pedestrian_DINO/DINO/analysis_results/points_tensor/new_reference_points.pt')
-            #torch.save(sampling_locations, '/home/ajay_sh/scratch/pedestrian_detection/DETR-Based/pedestrian_DINO/DINO/analysis_results/points_tensor/sampling_point_tensor.pt')
-            #torch.save(attention_weights, '/home/ajay_sh/scratch/pedestrian_detection/DETR-Based/pedestrian_DINO/DINO/analysis_results/points_tensor/attention_tensor.pt')
-            #print(sampling_offsets[0][0])
-            #print(sampling_offsets[0][1])
         else:
             raise ValueError(
                 'Last dim of reference_points must be 2 or 4, but get {} instead.'.format(reference_points.shape[-1]))
 
-        #ajay version of code
         #t1 = time.time()
         #sampling_locations_new,attention_weights_new = modify_sampling_points(sampling_locations,attention_weights,input_spatial_shapes)
         #t2 = time.time()
