@@ -195,16 +195,8 @@ class MSDeformAttn(nn.Module):
             output = self.output_proj(output)
             return output
 
-        #ajay version of code
-        #t1 = time.time()
-        #output = MSDeformAttnFunction.apply(
-        #    value, input_spatial_shapes, input_level_start_index, sampling_locations_new, attention_weights_new, self.im2col_step)
-        #t2 = time.time()
-        #print("Time taken to compute cuda output is ",(t2-t1))
-        #t1 = time.time()
         output = MSDeformAttnFunction.apply(
             value, input_spatial_shapes, input_level_start_index, sampling_locations, attention_weights, self.im2col_step)
-        #t2 = time.time()
-        #print("Time taken to compute cuda output is ",(t2-t1))
+
         output = self.output_proj(output)
         return output
