@@ -638,15 +638,6 @@ def build(image_set, args):
         "test": (root / "custom_caltech/val", root /'caltech-train-test-split/test.json'),
     }
 
-        #configurations to train on ECP
-    # PATHS = {
-    #     "train": (root /"", root /'day_train_all.json'),
-    #     "train_reg": (root /"", root /'day_train_all.json'),
-    #     "val": (root / "", root /'day_val.json'),
-    #     "eval_debug": (root / "", root /'day_val.json'),
-    #     "test": (root / "", root /'day_val.json'),
-    # }
-
     # add some hooks to datasets
     aux_target_hacks_list = get_aux_target_hacks_list(image_set, args)
     img_folder, ann_file = PATHS[image_set]
